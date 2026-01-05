@@ -1,5 +1,6 @@
 from typing import Any
 
+import os
 import numpy as np
 import torch
 import tyro
@@ -304,24 +305,35 @@ def run_sim(
         ):
           log[k] = np.stack(log[k], axis=0)
 
-        print("Saving to /tmp/motion.npz...")
-        np.savez("/tmp/motion.npz", **log)  # type: ignore[arg-type]
+        if not output_name.endswith(".npz"):
+          output_path = f"{output_name}.npz"
+        else:
+          output_path = output_name
+
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+        print(f"Saving to {output_path}...")
+        np.savez(output_path, **log)  # type: ignore[arg-type]
 
         print("Uploading to Weights & Biases...")
         import wandb
 
-        COLLECTION = output_name
+        COLLECTION = os.path.basename(output_name)
         run = wandb.init(project="csv_to_npz", name=COLLECTION)
         print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
         REGISTRY = "motions"
         logged_artifact = run.log_artifact(
-          artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY
+          artifact_or_path=output_path, name=COLLECTION, type=REGISTRY
         )
-        run.link_artifact(
-          artifact=logged_artifact,
-          target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
-        )
-        print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+        try:
+          run.link_artifact(
+            artifact=logged_artifact,
+            target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
+          )
+          print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+        except Exception as e:
+          print(f"[WARN]: Failed to link artifact to registry: {e}")
 
         if render:
           from moviepy import ImageSequenceClip

@@ -6,6 +6,7 @@ import mujoco
 
 from mjlab import MJLAB_SRC_PATH
 from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.actuator.delayed_actuator import DelayedActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import (
   ElectricActuator,
@@ -259,12 +260,12 @@ FEET_ONLY_COLLISION = CollisionCfg(
 
 G1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
-    G1_ACTUATOR_5020,
-    G1_ACTUATOR_7520_14,
-    G1_ACTUATOR_7520_22,
-    G1_ACTUATOR_4010,
-    G1_ACTUATOR_WAIST,
-    G1_ACTUATOR_ANKLE,
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_5020, delay_max_lag=5),
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_7520_14, delay_max_lag=5),
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_7520_22, delay_max_lag=5),
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_4010, delay_max_lag=5),
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_WAIST, delay_max_lag=5),
+    DelayedActuatorCfg(base_cfg=G1_ACTUATOR_ANKLE, delay_max_lag=5),
   ),
   soft_joint_pos_limit_factor=0.9,
 )
@@ -286,6 +287,8 @@ def get_g1_robot_cfg() -> EntityCfg:
 
 G1_ACTION_SCALE: dict[str, float] = {}
 for a in G1_ARTICULATION.actuators:
+  if isinstance(a, DelayedActuatorCfg):
+    a = a.base_cfg
   assert isinstance(a, BuiltinPositionActuatorCfg)
   e = a.effort_limit
   s = a.stiffness

@@ -89,7 +89,7 @@ def get_checkpoint_path(
   return run_path / checkpoint_file
 
 
-def get_wandb_checkpoint_path(log_path: Path, run_path: Path) -> tuple[Path, bool]:
+def get_wandb_checkpoint_path(log_path: Path, run_path: Union[str, Path]) -> tuple[Path, bool]:
   """Get checkpoint path from wandb, downloading if needed.
 
   Returns:
@@ -97,13 +97,16 @@ def get_wandb_checkpoint_path(log_path: Path, run_path: Path) -> tuple[Path, boo
   """
   import wandb
 
+  # Normalize path to string with forward slashes for WandB API
+  run_path_str = str(run_path).replace("\\", "/")
+
   # Extract run_id from path (e.g., "entity/project/run_id" -> "run_id").
-  run_id = str(run_path).split("/")[-1]
+  run_id = run_path_str.split("/")[-1]
   download_dir = log_path / "wandb_checkpoints" / run_id
 
   # Query wandb API to find the latest checkpoint.
   api = wandb.Api()
-  wandb_run = api.run(str(run_path))
+  wandb_run = api.run(run_path_str)
   files = [file.name for file in wandb_run.files() if "model" in file.name]
   checkpoint_file = max(files, key=lambda x: int(x.split("_")[1].split(".")[0]))
   checkpoint_path = download_dir / checkpoint_file

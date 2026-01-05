@@ -5,8 +5,10 @@ from mjlab.asset_zoo.robots import (
   get_g1_robot_cfg,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs import mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
-from mjlab.managers.manager_term_config import ObservationGroupCfg
+from mjlab.managers.manager_term_config import EventTermCfg, ObservationGroupCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.tracking_env_cfg import make_tracking_env_cfg
@@ -60,6 +62,18 @@ def unitree_g1_flat_tracking_env_cfg(
     "asset_cfg"
   ].geom_names = r"^(left|right)_foot[1-7]_collision$"
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
+  cfg.events["randomize_pd_gains"] = EventTermCfg(
+    func=mdp.randomize_pd_gains,
+    mode="startup",
+    domain_randomization=False,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "kp_range": (0.8, 1.2),
+      "kd_range": (0.8, 1.2),
+      "distribution": "uniform",
+      "operation": "scale",
+    },
+  )
 
   cfg.terminations["ee_body_pos"].params["body_names"] = (
     "left_ankle_roll_link",
